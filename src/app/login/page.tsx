@@ -19,7 +19,6 @@ import {
   Store,
   Globe,
   BarChart3,
-  CheckCircle2,
 } from "lucide-react";
 import { useAuthStore } from "@/store/useAuthStore";
 import { usePlatformStore } from "@/store/usePlatformStore";
@@ -30,17 +29,6 @@ const loginSchema = z.object({
 });
 
 type LoginForm = z.infer<typeof loginSchema>;
-
-const DEMO_ACCOUNTS = [
-  {
-    label: "الأدمن الرئيسي",
-    desc: "صلاحيات كاملة",
-    email: "admin@storeos.com",
-    password: "admin123",
-    gradient: "from-violet-500 to-indigo-600",
-    icon: Shield,
-  },
-];
 
 const FEATURES = [
   {
@@ -91,7 +79,6 @@ export default function LoginPage() {
   const {
     register,
     handleSubmit,
-    setValue,
     formState: { errors },
   } = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
@@ -109,12 +96,6 @@ export default function LoginPage() {
     } else {
       setError(result.error || "حدث خطأ غير متوقع");
     }
-  };
-
-  const fillDemo = (email: string, password: string) => {
-    setValue("email", email);
-    setValue("password", password);
-    setError("");
   };
 
   return (
@@ -255,7 +236,7 @@ export default function LoginPage() {
                   <input
                     {...register("email")}
                     type="email"
-                    placeholder="admin@storeos.com"
+                    placeholder="you@example.com"
                     onFocus={() => setFocusedField("email")}
                     onBlur={() => setFocusedField(null)}
                     className="flex-1 bg-transparent py-3.5 pl-4 text-white placeholder-gray-600 focus:outline-none text-sm"
@@ -361,48 +342,6 @@ export default function LoginPage() {
               </motion.button>
             </form>
           </div>
-
-          {/* Demo Accounts */}
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3, duration: 0.5 }}
-            className="mt-6"
-          >
-            <div className="flex items-center gap-3 mb-3">
-              <div className="flex-1 h-px bg-gray-800" />
-              <span className="text-gray-500 text-xs whitespace-nowrap">حسابات تجريبية</span>
-              <div className="flex-1 h-px bg-gray-800" />
-            </div>
-            <div className="space-y-2">
-              {DEMO_ACCOUNTS.map((account, i) => (
-                <motion.button
-                  key={account.email}
-                  onClick={() => fillDemo(account.email, account.password)}
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.4 + i * 0.08 }}
-                  whileHover={{ scale: 1.01, x: -4 }}
-                  whileTap={{ scale: 0.99 }}
-                  className="w-full glass-light rounded-xl p-3.5 flex items-center gap-3 hover:border-indigo-500/30 transition-all group text-right"
-                >
-                  <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${account.gradient} flex items-center justify-center shadow-md shrink-0 group-hover:scale-105 transition-transform`}>
-                    <account.icon size={18} className="text-white" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-white group-hover:text-indigo-200 transition-colors">
-                      {account.label}
-                    </p>
-                    <p className="text-xs text-gray-500">{account.desc}</p>
-                  </div>
-                  <div className="flex items-center gap-1 text-emerald-400 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <CheckCircle2 size={14} />
-                    <span className="text-xs">تعبئة</span>
-                  </div>
-                </motion.button>
-              ))}
-            </div>
-          </motion.div>
 
           {/* Footer */}
           <motion.p
