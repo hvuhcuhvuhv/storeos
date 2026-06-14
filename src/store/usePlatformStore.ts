@@ -1,36 +1,43 @@
 "use client";
 
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
-import { PERSIST_VERSION } from "@/lib/defaults";
 import {
   DEFAULT_PLATFORM_SETTINGS,
-  PLATFORM_STORAGE_KEY,
+  setPlatformName,
   type PlatformSettings,
 } from "@/lib/platform";
+import { api } from "@/lib/api";
 
 export { DEFAULT_PLATFORM_SETTINGS, type PlatformSettings };
 export { getPlatformName } from "@/lib/platform";
 
 interface PlatformStore {
   settings: PlatformSettings;
-  updateSettings: (data: Partial<PlatformSettings>) => void;
+  loadSettings: () => Promise<void>;
+  updateSettings: (data: Partial<PlatformSettings>) => Promise<{ success: boolean; error?: string }>;
 }
 
-export const usePlatformStore = create<PlatformStore>()(
-  persist(
-    (set) => ({
-      settings: { ...DEFAULT_PLATFORM_SETTINGS },
+export const usePlatformStore = create<PlatformStore>((set) => ({
+  settings: { ...DEFAULT_PLATFORM_SETTINGS },
 
-      updateSettings: (data) =>
-        set((state) => ({
-          settings: { ...state.settings, ...data },
-        })),
-    }),
-    {
-      name: PLATFORM_STORAGE_KEY,
-      version: PERSIST_VERSION,
-      skipHydration: true,
+  loadSettings: async () => {
+    try {
+      const { settings } = await api.getPlatform();
+      setPlatformName(settings.platformName);
+      set({ settings });
+    } catch {
+      /* تجاهل */
     }
-  )
-);
+  },
+
+  updateSettings: async (data) => {
+    try {
+      const { settings } = await api.updatePlatform(data);
+      setPlatformName(settings.platformName);
+      set({ settings });
+      return { success: true };
+    } catch (e) {
+      return { success: false, error: (e as Error).message };
+    }
+  },
+}));

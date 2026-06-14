@@ -5,7 +5,7 @@ import { Shield, Globe, Bell, Save, CheckCircle, RotateCcw, AlertTriangle } from
 import { useEffect, useState } from "react";
 import { Sidebar, TopBar } from "@/components/layout/Sidebar";
 import { ConfirmDialog } from "@/components/ui/Modal";
-import { resetAllData } from "@/lib/resetData";
+import { api } from "@/lib/api";
 import { usePlatformStore, DEFAULT_PLATFORM_SETTINGS } from "@/store/usePlatformStore";
 import { useAppHydration } from "@/lib/hydration";
 
@@ -31,21 +31,25 @@ export default function AdminSettingsPage() {
 
   const handleSave = async () => {
     setSaving(true);
-    updateSettings({
+    await updateSettings({
       platformName: platformName.trim() || DEFAULT_PLATFORM_SETTINGS.platformName,
       supportEmail: supportEmail.trim() || DEFAULT_PLATFORM_SETTINGS.supportEmail,
       allowNewStores,
       notifications,
     });
-    await new Promise((r) => setTimeout(r, 400));
     setSaving(false);
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
   };
 
-  const handleResetAll = () => {
+  const handleResetAll = async () => {
     setResetting(true);
-    resetAllData();
+    try {
+      await api.resetAll();
+      window.location.reload();
+    } catch {
+      setResetting(false);
+    }
   };
 
   if (!hydrated) {
@@ -82,7 +86,7 @@ export default function AdminSettingsPage() {
                 <input
                   value={platformName}
                   onChange={(e) => setPlatformName(e.target.value)}
-                  placeholder="StoreOS"
+                  placeholder="منصة سند"
                   className="w-full bg-gray-900/80 border border-gray-700/60 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-indigo-500"
                 />
                 <p className="text-xs text-gray-600 mt-1.5">يظهر في الشريط الجانبي، صفحة الدخول، وتذييل المتاجر</p>

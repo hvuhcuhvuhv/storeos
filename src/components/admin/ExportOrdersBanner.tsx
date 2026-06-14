@@ -26,7 +26,7 @@ export function AdminExportOrdersBanner() {
     exportAdminAllOrdersToExcel(
       stores,
       orders,
-      storeOwners.map(({ password: _, ...u }) => u),
+      storeOwners,
       filterDate ? { filterDate } : undefined
     );
     setLastExportedAt(new Date().toISOString());

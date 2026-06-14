@@ -1,8 +1,6 @@
-export const PLATFORM_STORAGE_KEY = "storeos-platform";
-
 export const DEFAULT_PLATFORM_SETTINGS = {
-  platformName: "StoreOS",
-  supportEmail: "support@storeos.com",
+  platformName: "منصة سند",
+  supportEmail: "support@sanad.com",
   allowNewStores: true,
   notifications: true,
 } as const;
@@ -14,15 +12,13 @@ export type PlatformSettings = {
   notifications: boolean;
 };
 
-export function getPlatformName(): string {
-  if (typeof window === "undefined") return DEFAULT_PLATFORM_SETTINGS.platformName;
+// ذاكرة مؤقتة لاسم المنصة لاستخدامها في سياقات غير تفاعلية (مثل تصدير Excel)
+let cachedPlatformName: string = DEFAULT_PLATFORM_SETTINGS.platformName;
 
-  try {
-    const raw = localStorage.getItem(PLATFORM_STORAGE_KEY);
-    if (!raw) return DEFAULT_PLATFORM_SETTINGS.platformName;
-    const data = JSON.parse(raw) as { state?: { settings?: { platformName?: string } } };
-    return data.state?.settings?.platformName?.trim() || DEFAULT_PLATFORM_SETTINGS.platformName;
-  } catch {
-    return DEFAULT_PLATFORM_SETTINGS.platformName;
-  }
+export function setPlatformName(name: string) {
+  if (name && name.trim()) cachedPlatformName = name.trim();
+}
+
+export function getPlatformName(): string {
+  return cachedPlatformName || DEFAULT_PLATFORM_SETTINGS.platformName;
 }

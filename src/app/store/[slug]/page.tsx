@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useState } from "react";
+import { use, useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ShoppingBag,
@@ -16,15 +16,15 @@ import {
   Check,
   Image as ImageIcon,
 } from "lucide-react";
-import { useStoreStore } from "@/store/useStoreStore";
 import { usePlatformStore } from "@/store/usePlatformStore";
-import { useProductsStore } from "@/store/useProductsStore";
 import { useCartStore, EMPTY_CART } from "@/store/useCartStore";
 import { Badge } from "@/components/ui/Cards";
 import { Modal } from "@/components/ui/Modal";
 import { CartDrawer, CartToast, OrderSuccessToast } from "@/components/store/CartDrawer";
+import { InstallPrompt } from "@/components/store/InstallPrompt";
 import { formatCurrency } from "@/lib/utils";
-import { useAppHydration } from "@/lib/hydration";
+import { api } from "@/lib/api";
+import type { Store as StoreType, Product } from "@/types";
 import Link from "next/link";
 
 interface DisplayProduct {
@@ -42,13 +42,31 @@ interface DisplayProduct {
 
 export default function StorePage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = use(params);
-  const hydrated = useAppHydration();
-  const { getStoreBySlug } = useStoreStore();
   const platformName = usePlatformStore((s) => s.settings.platformName);
-  const store = getStoreBySlug(slug);
+  const [store, setStore] = useState<StoreType | null>(null);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loadState, setLoadState] = useState<"loading" | "notfound" | "ready">("loading");
+
+  useEffect(() => {
+    let active = true;
+    api
+      .getStoreBySlug(slug)
+      .then(({ store, products }) => {
+        if (!active) return;
+        setStore(store);
+        setProducts(products);
+        setLoadState("ready");
+      })
+      .catch(() => {
+        if (active) setLoadState("notfound");
+      });
+    return () => {
+      active = false;
+    };
+  }, [slug]);
+
   const storeId = store?.id ?? "";
   const { addItem } = useCartStore();
-  const allProducts = useProductsStore((s) => s.products);
   const cartItems = useCartStore((s) => s.carts[storeId] ?? EMPTY_CART);
   const cartCount = cartItems.reduce((sum, i) => sum + i.quantity, 0);
   const cartTotal = cartItems.reduce((sum, i) => sum + i.price * i.quantity, 0);
@@ -70,8 +88,7 @@ export default function StorePage({ params }: { params: Promise<{ slug: string }
     setDetailImage(0);
   };
 
-  const storeProducts: DisplayProduct[] = allProducts
-    .filter((p) => p.storeId === storeId)
+  const storeProducts: DisplayProduct[] = products
     .map((p) => {
       const gallery = p.images?.length ? p.images : p.image ? [p.image] : [];
       return {
@@ -122,7 +139,7 @@ export default function StorePage({ params }: { params: Promise<{ slug: string }
   const getProductQtyInCart = (productId: string) =>
     cartItems.find((i) => i.productId === productId)?.quantity || 0;
 
-  if (!hydrated) {
+  if (loadState === "loading") {
     return (
       <div className="min-h-screen bg-gray-950 flex flex-col items-center justify-center gap-4">
         <div className="w-10 h-10 border-2 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin" />
@@ -131,7 +148,7 @@ export default function StorePage({ params }: { params: Promise<{ slug: string }
     );
   }
 
-  if (!store) {
+  if (loadState === "notfound" || !store) {
     return (
       <div className="min-h-screen bg-gray-950 flex flex-col items-center justify-center gap-4">
         <Store size={48} className="text-gray-600" />
@@ -208,6 +225,7 @@ export default function StorePage({ params }: { params: Promise<{ slug: string }
       />
       <CartToast productName={toast.name} show={toast.show} />
       <OrderSuccessToast orderId={orderSuccess.orderId} show={orderSuccess.show} />
+      <InstallPrompt storeName={store.brandName || store.name} />
 
       {/* Hero */}
       <div className="relative bg-gradient-to-br from-gray-900 via-gray-950 to-gray-900 border-b border-gray-800 overflow-hidden">

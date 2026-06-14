@@ -172,8 +172,8 @@ export function Sidebar({ isAdmin }: { isAdmin: boolean }) {
     ? "لا يوجد متجر نشط"
     : null;
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
     router.push("/login");
   };
 

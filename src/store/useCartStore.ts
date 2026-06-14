@@ -2,7 +2,6 @@
 
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { PERSIST_VERSION, getFreshCartState } from "@/lib/defaults";
 
 export interface CartItem {
   productId: string;
@@ -52,7 +51,9 @@ export const useCartStore = create<CartStore>()(
         set((state) => ({
           carts: {
             ...state.carts,
-            [storeId]: (state.carts[storeId] ?? EMPTY_CART).filter((i) => i.productId !== productId),
+            [storeId]: (state.carts[storeId] ?? EMPTY_CART).filter(
+              (i) => i.productId !== productId
+            ),
           },
         }));
       },
@@ -84,13 +85,14 @@ export const useCartStore = create<CartStore>()(
         (get().carts[storeId] ?? EMPTY_CART).reduce((sum, i) => sum + i.quantity, 0),
 
       getTotal: (storeId) =>
-        (get().carts[storeId] ?? EMPTY_CART).reduce((sum, i) => sum + i.price * i.quantity, 0),
+        (get().carts[storeId] ?? EMPTY_CART).reduce(
+          (sum, i) => sum + i.price * i.quantity,
+          0
+        ),
     }),
     {
       name: "storeos-cart",
-      version: PERSIST_VERSION,
-      migrate: () => getFreshCartState(),
-      skipHydration: true,
+      version: 1,
     }
   )
 );

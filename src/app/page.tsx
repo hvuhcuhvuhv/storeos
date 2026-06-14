@@ -5,10 +5,11 @@ import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/useAuthStore";
 
 export default function HomePage() {
-  const { isAuthenticated, user } = useAuthStore();
+  const { isAuthenticated, user, loading } = useAuthStore();
   const router = useRouter();
 
   useEffect(() => {
+    if (loading) return;
     if (isAuthenticated && user) {
       if (user.role === "admin") {
         router.replace("/admin");
@@ -18,7 +19,7 @@ export default function HomePage() {
     } else {
       router.replace("/login");
     }
-  }, [isAuthenticated, user, router]);
+  }, [loading, isAuthenticated, user, router]);
 
   return (
     <div className="min-h-screen bg-gray-950 flex items-center justify-center">

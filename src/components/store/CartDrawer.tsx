@@ -32,7 +32,6 @@ import {
 } from "@stripe/react-stripe-js";
 import { useCartStore, EMPTY_CART, CartItem } from "@/store/useCartStore";
 import { useOrdersStore } from "@/store/useOrdersStore";
-import { useStoreStore } from "@/store/useStoreStore";
 import { formatCurrency } from "@/lib/utils";
 
 const checkoutSchema = z.object({
@@ -71,7 +70,6 @@ export function CartDrawer({
   const items = useCartStore((s) => s.carts[storeId] ?? EMPTY_CART);
   const { updateQuantity, removeItem, clearCart } = useCartStore();
   const { addOrder } = useOrdersStore();
-  const { recordOrder } = useStoreStore();
 
   const [step, setStep] = useState<Step>("cart");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -115,8 +113,8 @@ export function CartDrawer({
     }, 300);
   };
 
-  const finalizeOrder = (data: CheckoutForm) => {
-    const order = addOrder({
+  const finalizeOrder = async (data: CheckoutForm) => {
+    const result = await addOrder({
       storeId,
       customerName: data.customerName,
       customerEmail: data.customerEmail,
@@ -124,7 +122,6 @@ export function CartDrawer({
       customerCity: data.customerCity,
       customerAddress: data.customerAddress,
       total,
-      status: "pending",
       items: items.map((item: CartItem) => ({
         productId: item.productId,
         productName: item.name,
@@ -133,11 +130,15 @@ export function CartDrawer({
       })),
     });
 
-    recordOrder(storeId, total);
+    if (!result.success || !result.order) {
+      setPayError(result.error || "تعذر تأكيد الطلب");
+      return;
+    }
+
     clearCart(storeId);
-    setCompletedOrderId(order.id);
+    setCompletedOrderId(result.order.id);
     setStep("success");
-    onOrderSuccess?.(order.id);
+    onOrderSuccess?.(result.order.id);
   };
 
   const onSubmit = async (data: CheckoutForm) => {
@@ -146,8 +147,7 @@ export function CartDrawer({
 
     if (!stripeReady) {
       setIsSubmitting(true);
-      await new Promise((r) => setTimeout(r, 800));
-      finalizeOrder(data);
+      await finalizeOrder(data);
       setIsSubmitting(false);
       return;
     }

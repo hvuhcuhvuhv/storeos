@@ -1,48 +1,53 @@
 "use client";
 
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
 import { Order } from "@/types";
-import { PERSIST_VERSION, getFreshOrdersState } from "@/lib/defaults";
+import { api } from "@/lib/api";
 
 interface OrdersStore {
   orders: Order[];
+  loading: boolean;
+  loadOrders: (storeId?: string) => Promise<void>;
   getOrdersByStoreId: (storeId: string) => Order[];
-  addOrder: (data: Omit<Order, "id" | "createdAt">) => Order;
-  updateOrderStatus: (id: string, status: Order["status"]) => void;
+  addOrder: (data: Record<string, unknown>) => Promise<{ success: boolean; error?: string; order?: Order }>;
+  updateOrderStatus: (id: string, status: Order["status"]) => Promise<void>;
 }
 
-export const useOrdersStore = create<OrdersStore>()(
-  persist(
-    (set, get) => ({
-      orders: [],
+export const useOrdersStore = create<OrdersStore>((set, get) => ({
+  orders: [],
+  loading: false,
 
-      getOrdersByStoreId: (storeId) =>
-        get().orders.filter((o) => o.storeId === storeId),
-
-      addOrder: (data) => {
-        const newOrder: Order = {
-          ...data,
-          id: `ORD-${Date.now()}`,
-          createdAt: new Date().toISOString(),
-        };
-        set((state) => ({ orders: [newOrder, ...state.orders] }));
-        return newOrder;
-      },
-
-      updateOrderStatus: (id, status) => {
-        set((state) => ({
-          orders: state.orders.map((o) =>
-            o.id === id ? { ...o, status } : o
-          ),
-        }));
-      },
-    }),
-    {
-      name: "storeos-orders",
-      version: PERSIST_VERSION,
-      migrate: () => getFreshOrdersState(),
-      skipHydration: true,
+  loadOrders: async (storeId) => {
+    set({ loading: true });
+    try {
+      const { orders } = await api.getOrders(storeId);
+      set({ orders, loading: false });
+    } catch {
+      set({ loading: false });
     }
-  )
-);
+  },
+
+  getOrdersByStoreId: (storeId) =>
+    get().orders.filter((o) => o.storeId === storeId),
+
+  addOrder: async (data) => {
+    try {
+      const { order } = await api.createOrder(data);
+      set((state) => ({ orders: [order, ...state.orders] }));
+      return { success: true, order };
+    } catch (e) {
+      return { success: false, error: (e as Error).message };
+    }
+  },
+
+  updateOrderStatus: async (id, status) => {
+    try {
+      const { order } = await api.updateOrderStatus(id, status);
+      set((state) => ({
+        orders: state.orders.map((o) => (o.id === id ? order : o)),
+      }));
+    } catch {
+      /* تجاهل */
+    }
+  },
+}));

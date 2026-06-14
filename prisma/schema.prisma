@@ -1,0 +1,118 @@
+// StoreOS database schema (PostgreSQL via Supabase)
+// Run: npx prisma migrate dev   (local)  /  npx prisma db push (quick sync)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum UserRole {
+  admin
+  store_owner
+}
+
+enum StoreStatus {
+  active
+  inactive
+}
+
+enum OrderStatus {
+  pending
+  processing
+  shipped
+  delivered
+  cancelled
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  password  String
+  role      UserRole @default(store_owner)
+  store     Store?   @relation("StoreOwner")
+  createdAt DateTime @default(now())
+}
+
+model Store {
+  id          String      @id @default(cuid())
+  name        String
+  slug        String      @unique
+  brandName   String?
+  description String      @default("") @db.Text
+  logo        String?     @db.Text
+  ownerId     String      @unique
+  owner       User        @relation("StoreOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  ownerName   String
+  ownerEmail  String
+  ownerPhone  String?
+  status      StoreStatus @default(active)
+  category    String      @default("")
+
+  stripePublishableKey String?
+  stripeSecretKey      String?
+  stripeEnabled        Boolean @default(false)
+  stripeConnectedAt    DateTime?
+
+  products  Product[]
+  orders    Order[]
+  createdAt DateTime  @default(now())
+}
+
+model Product {
+  id             String   @id @default(cuid())
+  storeId        String
+  store          Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  name           String
+  description    String   @default("") @db.Text
+  price          Float
+  compareAtPrice Float?
+  stock          Int      @default(0)
+  images         String[] @default([])
+  category       String   @default("")
+  createdAt      DateTime @default(now())
+
+  @@index([storeId])
+}
+
+model Order {
+  id              String      @id @default(cuid())
+  storeId         String
+  store           Store       @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  customerName    String
+  customerEmail   String
+  customerPhone   String
+  customerCity    String?
+  customerAddress String?
+  total           Float
+  status          OrderStatus @default(pending)
+  items           OrderItem[]
+  createdAt       DateTime    @default(now())
+
+  @@index([storeId])
+}
+
+model OrderItem {
+  id          String @id @default(cuid())
+  orderId     String
+  order       Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId   String
+  productName String
+  quantity    Int
+  price       Float
+
+  @@index([orderId])
+}
+
+model PlatformSettings {
+  id             Int     @id @default(1)
+  platformName   String  @default("منصة سند")
+  supportEmail   String  @default("support@sanad.com")
+  allowNewStores Boolean @default(true)
+  notifications  Boolean @default(true)
+}

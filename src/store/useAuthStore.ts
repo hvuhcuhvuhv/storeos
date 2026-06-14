@@ -1,84 +1,61 @@
 "use client";
 
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
 import { User } from "@/types";
-import {
-  PERSIST_VERSION,
-  getFreshAuthState,
-  type StoredUser,
-} from "@/lib/defaults";
+import { api } from "@/lib/api";
 
 interface AuthStore {
   user: User | null;
   isAuthenticated: boolean;
-  users: StoredUser[];
+  loading: boolean;
+  users: User[];
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
-  logout: () => void;
-  registerStoreOwner: (data: {
-    name: string;
-    email: string;
-    password: string;
-    storeId: string;
-  }) => { success: boolean; error?: string };
+  logout: () => Promise<void>;
+  fetchMe: () => Promise<User | null>;
+  loadUsers: () => Promise<void>;
 }
 
-const fresh = getFreshAuthState();
+export const useAuthStore = create<AuthStore>((set) => ({
+  user: null,
+  isAuthenticated: false,
+  loading: true,
+  users: [],
 
-export const useAuthStore = create<AuthStore>()(
-  persist(
-    (set, get) => ({
-      user: fresh.user,
-      isAuthenticated: fresh.isAuthenticated,
-      users: fresh.users,
-
-      login: async (email: string, password: string) => {
-        await new Promise((r) => setTimeout(r, 800));
-        const found = get().users.find(
-          (u) => u.email === email && u.password === password
-        );
-        if (found) {
-          const { password: _, ...userWithoutPassword } = found;
-          set({ user: userWithoutPassword, isAuthenticated: true });
-          return { success: true };
-        }
-        return { success: false, error: "البريد الإلكتروني أو كلمة المرور غير صحيحة" };
-      },
-
-      logout: () => {
-        set({ user: null, isAuthenticated: false });
-      },
-
-      registerStoreOwner: ({ name, email, password, storeId }) => {
-        const existing = get().users.find((u) => u.email === email);
-        if (existing) {
-          return { success: false, error: "البريد الإلكتروني مسجل مسبقاً" };
-        }
-
-        const newUser: StoredUser = {
-          id: `user-${Date.now()}`,
-          name,
-          email,
-          password,
-          role: "store_owner",
-          storeId,
-          createdAt: new Date().toISOString(),
-        };
-
-        set((state) => ({ users: [...state.users, newUser] }));
-        return { success: true };
-      },
-    }),
-    {
-      name: "storeos-auth",
-      version: PERSIST_VERSION,
-      migrate: () => getFreshAuthState(),
-      partialize: (state) => ({
-        user: state.user,
-        isAuthenticated: state.isAuthenticated,
-        users: state.users,
-      }),
-      skipHydration: true,
+  login: async (email, password) => {
+    try {
+      const { user } = await api.login(email, password);
+      set({ user, isAuthenticated: true, loading: false });
+      return { success: true };
+    } catch (e) {
+      return { success: false, error: (e as Error).message };
     }
-  )
-);
+  },
+
+  logout: async () => {
+    try {
+      await api.logout();
+    } finally {
+      set({ user: null, isAuthenticated: false });
+    }
+  },
+
+  fetchMe: async () => {
+    try {
+      const { user } = await api.me();
+      set({ user, isAuthenticated: Boolean(user), loading: false });
+      return user;
+    } catch {
+      set({ loading: false });
+      return null;
+    }
+  },
+
+  loadUsers: async () => {
+    try {
+      const { users } = await api.getUsers();
+      set({ users });
+    } catch {
+      /* تجاهل */
+    }
+  },
+}));

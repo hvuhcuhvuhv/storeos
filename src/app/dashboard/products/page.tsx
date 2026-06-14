@@ -44,7 +44,7 @@ const MAX_IMAGES = 6;
 export default function ProductsPage() {
   const hydrated = useAppHydration();
   const { user } = useAuthStore();
-  const { getStoreById, updateStore } = useStoreStore();
+  const getStoreById = useStoreStore((s) => s.getStoreById);
   const { getProductsByStoreId, addProduct, updateProduct, deleteProduct } = useProductsStore();
   const [search, setSearch] = useState("");
   const [formOpen, setFormOpen] = useState(false);
@@ -60,11 +60,6 @@ export default function ProductsPage() {
   const filtered = products.filter((p) =>
     p.name.toLowerCase().includes(search.toLowerCase())
   );
-
-  const syncCount = (storeId: string) => {
-    const count = useProductsStore.getState().getProductsByStoreId(storeId).length;
-    updateStore(storeId, { productsCount: count });
-  };
 
   const openCreate = () => {
     setEditing(null);
@@ -151,34 +146,31 @@ export default function ProductsPage() {
     return Object.keys(next).length === 0;
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!store || !validate()) return;
 
     const payload = {
       name: form.name.trim(),
       description: form.description.trim(),
       price: Number(form.price),
-      compareAtPrice: form.compareAtPrice ? Number(form.compareAtPrice) : undefined,
+      compareAtPrice: form.compareAtPrice ? Number(form.compareAtPrice) : null,
       stock: Number(form.stock),
       category: form.category,
-      image: form.images[0] || undefined,
-      images: form.images.length ? form.images : undefined,
+      images: form.images,
     };
 
     if (editing) {
-      updateProduct(editing.id, payload);
+      await updateProduct(editing.id, payload);
     } else {
-      addProduct({ storeId: store.id, ...payload });
+      await addProduct({ storeId: store.id, ...payload });
     }
 
-    syncCount(store.id);
     setFormOpen(false);
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (!deleteTarget || !store) return;
-    deleteProduct(deleteTarget.id);
-    syncCount(store.id);
+    await deleteProduct(deleteTarget.id);
     setDeleteTarget(null);
   };
 

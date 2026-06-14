@@ -18,7 +18,6 @@ import {
   ChevronLeft,
 } from "lucide-react";
 import { useStoreStore } from "@/store/useStoreStore";
-import { useAuthStore } from "@/store/useAuthStore";
 import { Sidebar, TopBar } from "@/components/layout/Sidebar";
 import { generateSlug } from "@/lib/utils";
 import { usePlatformStore } from "@/store/usePlatformStore";
@@ -45,8 +44,7 @@ const CATEGORIES = [
 
 export default function NewStorePage() {
   const hydrated = useAppHydration();
-  const { addStore, deleteStore } = useStoreStore();
-  const { registerStoreOwner } = useAuthStore();
+  const addStore = useStoreStore((s) => s.addStore);
   const allowNewStores = usePlatformStore((s) => s.settings.allowNewStores);
   const [isSuccess, setIsSuccess] = useState(false);
   const [createdSlug, setCreatedSlug] = useState("");
@@ -64,36 +62,24 @@ export default function NewStorePage() {
 
   const onSubmit = async (data: CreateStoreForm) => {
     setSubmitError("");
-    await new Promise((r) => setTimeout(r, 300));
 
-    const ownerId = `user-${Date.now()}`;
-
-    const newStore = addStore({
+    const result = await addStore({
       name: data.storeName,
       brandName: data.brandName || data.storeName,
       description: data.storeDescription || "",
       category: data.storeCategory,
-      ownerId,
       ownerName: data.ownerName,
       ownerEmail: data.ownerEmail,
       ownerPhone: data.ownerPhone,
-      status: "active",
+      ownerPassword: data.ownerPassword,
     });
 
-    const ownerResult = registerStoreOwner({
-      name: data.ownerName,
-      email: data.ownerEmail,
-      password: data.ownerPassword,
-      storeId: newStore.id,
-    });
-
-    if (!ownerResult.success) {
-      deleteStore(newStore.id);
-      setSubmitError(ownerResult.error || "تعذر إنشاء حساب صاحب المتجر");
+    if (!result.success || !result.store) {
+      setSubmitError(result.error || "تعذر إنشاء المتجر");
       return;
     }
 
-    setCreatedSlug(newStore.slug);
+    setCreatedSlug(result.store.slug);
     setIsSuccess(true);
   };
 
