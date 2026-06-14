@@ -236,7 +236,7 @@ export default function LoginPage() {
                   <input
                     {...register("email")}
                     type="email"
-                    placeholder="you@example.com"
+                    placeholder="Your email"
                     onFocus={() => setFocusedField("email")}
                     onBlur={() => setFocusedField(null)}
                     className="flex-1 bg-transparent py-3.5 pl-4 text-white placeholder-gray-600 focus:outline-none text-sm"

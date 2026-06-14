@@ -284,9 +284,7 @@ export function Sidebar({ isAdmin }: { isAdmin: boolean }) {
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-white truncate">{user?.name}</p>
-            <p className="text-xs text-gray-500 truncate">
-              {isAdmin ? "مدير المنصة" : "صاحب متجر"}
-            </p>
+            <p className="text-xs text-gray-500 truncate">Your email</p>
           </div>
         </div>
         <button
