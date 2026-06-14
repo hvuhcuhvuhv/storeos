@@ -5,20 +5,18 @@ import { motion } from "framer-motion";
 import {
   ImageIcon,
   Type,
-  CreditCard,
+  Landmark,
   Save,
   CheckCircle,
   Upload,
   Trash2,
-  Eye,
-  EyeOff,
   ExternalLink,
   Store,
 } from "lucide-react";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useStoreStore } from "@/store/useStoreStore";
 import { Sidebar, TopBar } from "@/components/layout/Sidebar";
-import { StripeConfig } from "@/types";
+import { BankConfig } from "@/types";
 
 export default function SettingsPage() {
   const { user } = useAuthStore();
@@ -30,8 +28,13 @@ export default function SettingsPage() {
   const [brandName, setBrandName] = useState("");
   const [logo, setLogo] = useState("");
   const [ownerPhone, setOwnerPhone] = useState("");
-  const [stripe, setStripe] = useState<StripeConfig>({ publishableKey: "", secretKey: "", enabled: false });
-  const [showSecretKey, setShowSecretKey] = useState(false);
+  const [bank, setBank] = useState<BankConfig>({
+    bankName: "",
+    accountName: "",
+    iban: "",
+    accountNumber: "",
+    enabled: false,
+  });
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -40,7 +43,15 @@ export default function SettingsPage() {
     setBrandName(store.brandName || store.name);
     setLogo(store.logo || "");
     setOwnerPhone(store.ownerPhone || "");
-    setStripe(store.stripe || { publishableKey: "", secretKey: "", enabled: false });
+    setBank(
+      store.bank || {
+        bankName: "",
+        accountName: "",
+        iban: "",
+        accountNumber: "",
+        enabled: false,
+      }
+    );
   }, [store]);
 
   if (!store) {
@@ -68,18 +79,16 @@ export default function SettingsPage() {
 
   const handleSave = async () => {
     setSaving(true);
-    await new Promise((r) => setTimeout(r, 600));
 
-    updateStore(store.id, {
+    await updateStore(store.id, {
       brandName: brandName.trim() || store.name,
       logo: logo || undefined,
       ownerPhone: ownerPhone.trim(),
-      stripe: {
-        ...stripe,
-        connectedAt: stripe.enabled && stripe.publishableKey
-          ? stripe.connectedAt || new Date().toISOString()
-          : undefined,
-      },
+      bankName: bank.bankName.trim(),
+      bankAccountName: bank.accountName.trim(),
+      bankIban: bank.iban.trim(),
+      bankAccountNumber: bank.accountNumber.trim(),
+      bankEnabled: bank.enabled,
     });
 
     setSaving(false);
@@ -224,7 +233,7 @@ export default function SettingsPage() {
             </div>
           </motion.div>
 
-          {/* Stripe */}
+          {/* Bank transfer */}
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -233,24 +242,24 @@ export default function SettingsPage() {
           >
             <div className="p-5 border-b border-gray-700/50 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center">
-                  <CreditCard size={18} className="text-purple-400" />
+                <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center">
+                  <Landmark size={18} className="text-emerald-400" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-white">بوابة الدفع Stripe</h3>
-                  <p className="text-xs text-gray-500">بوابة دفع خاصة بمتجرك</p>
+                  <h3 className="font-semibold text-white">الدفع بالتحويل البنكي</h3>
+                  <p className="text-xs text-gray-500">يودِع العميل المبلغ في حسابك ثم يؤكّد الطلب</p>
                 </div>
               </div>
               <button
                 type="button"
-                onClick={() => setStripe((s) => ({ ...s, enabled: !s.enabled }))}
+                onClick={() => setBank((b) => ({ ...b, enabled: !b.enabled }))}
                 className={`relative w-12 h-6 rounded-full transition-colors ${
-                  stripe.enabled ? "bg-emerald-500" : "bg-gray-700"
+                  bank.enabled ? "bg-emerald-500" : "bg-gray-700"
                 }`}
               >
                 <div
                   className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${
-                    stripe.enabled ? "right-0.5" : "right-6"
+                    bank.enabled ? "right-0.5" : "right-6"
                   }`}
                 />
               </button>
@@ -258,55 +267,63 @@ export default function SettingsPage() {
 
             <div className="p-5 space-y-4">
               <div className={`flex items-center gap-3 p-3 rounded-xl border ${
-                stripe.enabled && stripe.publishableKey
+                bank.enabled && bank.iban
                   ? "bg-emerald-500/5 border-emerald-500/20"
                   : "bg-gray-800/30 border-gray-700/30"
               }`}>
                 <div className={`w-2 h-2 rounded-full ${
-                  stripe.enabled && stripe.publishableKey ? "bg-emerald-400" : "bg-gray-600"
+                  bank.enabled && bank.iban ? "bg-emerald-400" : "bg-gray-600"
                 }`} />
                 <span className="text-sm text-gray-300">
-                  {stripe.enabled && stripe.publishableKey
-                    ? "Stripe متصل — جاهز لاستقبال المدفوعات"
-                    : stripe.enabled
-                    ? "أدخل مفاتيح Stripe لتفعيل الدفع"
-                    : "بوابة الدفع معطّلة"}
+                  {bank.enabled && bank.iban
+                    ? "بيانات الحساب جاهزة — ستظهر للعميل عند الدفع"
+                    : bank.enabled
+                    ? "أدخل الآيبان واسم صاحب الحساب لتفعيل الدفع"
+                    : "الدفع البنكي معطّل"}
                 </span>
               </div>
 
               <div>
-                <label className="block text-sm text-gray-400 mb-2">Publishable Key</label>
+                <label className="block text-sm text-gray-400 mb-2">اسم البنك</label>
                 <input
-                  value={stripe.publishableKey}
-                  onChange={(e) => setStripe((s) => ({ ...s, publishableKey: e.target.value }))}
-                  placeholder="pk_live_..."
-                  dir="ltr"
-                  className="w-full bg-gray-900/80 border border-gray-700/60 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 text-sm font-mono"
+                  value={bank.bankName}
+                  onChange={(e) => setBank((b) => ({ ...b, bankName: e.target.value }))}
+                  placeholder="مثال: بنك الإمارات دبي الوطني"
+                  className="w-full bg-gray-900/80 border border-gray-700/60 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 text-sm"
                 />
               </div>
 
               <div>
-                <label className="block text-sm text-gray-400 mb-2">Secret Key</label>
-                <div className="relative">
-                  <input
-                    value={stripe.secretKey}
-                    onChange={(e) => setStripe((s) => ({ ...s, secretKey: e.target.value }))}
-                    type={showSecretKey ? "text" : "password"}
-                    placeholder="sk_live_..."
-                    dir="ltr"
-                    className="w-full bg-gray-900/80 border border-gray-700/60 rounded-xl px-4 py-3 pl-12 text-white placeholder-gray-600 focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 text-sm font-mono"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowSecretKey(!showSecretKey)}
-                    className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300"
-                  >
-                    {showSecretKey ? <EyeOff size={16} /> : <Eye size={16} />}
-                  </button>
-                </div>
-                <p className="text-xs text-gray-600 mt-1.5">
-                  كل متجر له مفاتيح Stripe مستقلة — لا تشارك Secret Key مع أحد
-                </p>
+                <label className="block text-sm text-gray-400 mb-2">اسم صاحب الحساب</label>
+                <input
+                  value={bank.accountName}
+                  onChange={(e) => setBank((b) => ({ ...b, accountName: e.target.value }))}
+                  placeholder="الاسم كما هو مسجّل في البنك"
+                  className="w-full bg-gray-900/80 border border-gray-700/60 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm text-gray-400 mb-2">رقم الآيبان (IBAN)</label>
+                <input
+                  value={bank.iban}
+                  onChange={(e) => setBank((b) => ({ ...b, iban: e.target.value.toUpperCase() }))}
+                  placeholder="AE000000000000000000000"
+                  dir="ltr"
+                  className="w-full bg-gray-900/80 border border-gray-700/60 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 text-sm font-mono"
+                />
+                <p className="text-xs text-gray-600 mt-1.5">يبدأ عادةً بـ AE ويتكوّن من 23 خانة</p>
+              </div>
+
+              <div>
+                <label className="block text-sm text-gray-400 mb-2">رقم الحساب (اختياري)</label>
+                <input
+                  value={bank.accountNumber}
+                  onChange={(e) => setBank((b) => ({ ...b, accountNumber: e.target.value }))}
+                  placeholder="رقم الحساب البنكي"
+                  dir="ltr"
+                  className="w-full bg-gray-900/80 border border-gray-700/60 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 text-sm font-mono"
+                />
               </div>
             </div>
           </motion.div>

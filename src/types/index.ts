@@ -11,11 +11,12 @@ export interface User {
 
 export type StoreStatus = "active" | "inactive";
 
-export interface StripeConfig {
-  publishableKey: string;
-  secretKey: string;
+export interface BankConfig {
+  bankName: string;
+  accountName: string;
+  iban: string;
+  accountNumber: string;
   enabled: boolean;
-  connectedAt?: string;
 }
 
 export interface Store {
@@ -34,7 +35,7 @@ export interface Store {
   productsCount: number;
   ordersCount: number;
   revenue: number;
-  stripe?: StripeConfig;
+  bank?: BankConfig;
   createdAt: string;
 }
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ShoppingBag,
@@ -12,24 +12,18 @@ import {
   User,
   Mail,
   Phone,
-  CreditCard,
+  Landmark,
   ArrowRight,
   Loader2,
   MapPin,
   Home,
-  Lock,
+  Copy,
+  Check,
   AlertCircle,
 } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { loadStripe } from "@stripe/stripe-js";
-import {
-  Elements,
-  PaymentElement,
-  useStripe,
-  useElements,
-} from "@stripe/react-stripe-js";
 import { useCartStore, EMPTY_CART, CartItem } from "@/store/useCartStore";
 import { useOrdersStore } from "@/store/useOrdersStore";
 import { formatCurrency } from "@/lib/utils";
@@ -46,12 +40,18 @@ type CheckoutForm = z.infer<typeof checkoutSchema>;
 
 type Step = "cart" | "checkout" | "payment" | "success";
 
+export interface BankDetails {
+  bankName?: string;
+  accountName?: string;
+  iban?: string;
+  accountNumber?: string;
+}
+
 interface CartDrawerProps {
   storeId: string;
   storeName: string;
-  stripeEnabled?: boolean;
-  stripePublishableKey?: string;
-  stripeSecretKey?: string;
+  bankEnabled?: boolean;
+  bank?: BankDetails;
   isOpen: boolean;
   onClose: () => void;
   onOrderSuccess?: (orderId: string) => void;
@@ -60,9 +60,8 @@ interface CartDrawerProps {
 export function CartDrawer({
   storeId,
   storeName,
-  stripeEnabled = false,
-  stripePublishableKey,
-  stripeSecretKey,
+  bankEnabled = false,
+  bank,
   isOpen,
   onClose,
   onOrderSuccess,
@@ -74,19 +73,13 @@ export function CartDrawer({
   const [step, setStep] = useState<Step>("cart");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [completedOrderId, setCompletedOrderId] = useState("");
-  const [clientSecret, setClientSecret] = useState("");
   const [pendingForm, setPendingForm] = useState<CheckoutForm | null>(null);
   const [payError, setPayError] = useState("");
 
   const total = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
   const itemCount = items.reduce((sum, i) => sum + i.quantity, 0);
 
-  const stripeReady = Boolean(stripeEnabled && stripePublishableKey && stripeSecretKey);
-
-  const stripePromise = useMemo(
-    () => (stripePublishableKey ? loadStripe(stripePublishableKey) : null),
-    [stripePublishableKey]
-  );
+  const bankReady = Boolean(bankEnabled && bank?.iban && bank?.accountName);
 
   const {
     register,
@@ -100,7 +93,6 @@ export function CartDrawer({
   const resetFlow = () => {
     setStep("cart");
     setCompletedOrderId("");
-    setClientSecret("");
     setPendingForm(null);
     setPayError("");
     reset();
@@ -145,36 +137,23 @@ export function CartDrawer({
     if (items.length === 0) return;
     setPayError("");
 
-    if (!stripeReady) {
+    if (!bankReady) {
       setIsSubmitting(true);
       await finalizeOrder(data);
       setIsSubmitting(false);
       return;
     }
 
-    setIsSubmitting(true);
-    try {
-      const res = await fetch("/api/stripe/create-payment-intent", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          amount: total,
-          secretKey: stripeSecretKey,
-          currency: "aed",
-          metadata: { storeId, storeName },
-        }),
-      });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error || "تعذر بدء عملية الدفع");
+    setPendingForm(data);
+    setStep("payment");
+  };
 
-      setClientSecret(json.clientSecret);
-      setPendingForm(data);
-      setStep("payment");
-    } catch (e) {
-      setPayError(e instanceof Error ? e.message : "تعذر بدء عملية الدفع");
-    } finally {
-      setIsSubmitting(false);
-    }
+  const confirmBankOrder = async () => {
+    if (!pendingForm) return;
+    setPayError("");
+    setIsSubmitting(true);
+    await finalizeOrder(pendingForm);
+    setIsSubmitting(false);
   };
 
   return (
@@ -261,10 +240,10 @@ export function CartDrawer({
                       <span className="text-gray-400">{itemCount} سلعة</span>
                       <span className="font-bold text-white">{formatCurrency(total)}</span>
                     </div>
-                    {stripeEnabled && (
-                      <div className="flex items-center gap-1.5 mt-2 text-xs text-purple-400">
-                        <CreditCard size={12} />
-                        الدفع عبر Stripe
+                    {bankReady && (
+                      <div className="flex items-center gap-1.5 mt-2 text-xs text-emerald-400">
+                        <Landmark size={12} />
+                        الدفع بالتحويل البنكي
                       </div>
                     )}
                   </div>
@@ -368,11 +347,11 @@ export function CartDrawer({
                     {isSubmitting ? (
                       <>
                         <Loader2 size={16} className="animate-spin" />
-                        {stripeReady ? "جارٍ تجهيز الدفع..." : "جارٍ تأكيد الطلب..."}
+                        جارٍ تأكيد الطلب...
                       </>
-                    ) : stripeReady ? (
+                    ) : bankReady ? (
                       <>
-                        <CreditCard size={16} />
+                        <Landmark size={16} />
                         المتابعة للدفع — {formatCurrency(total)}
                       </>
                     ) : (
@@ -394,38 +373,18 @@ export function CartDrawer({
               </form>
             )}
 
-            {/* Payment Step */}
-            {step === "payment" && clientSecret && stripePromise && (
+            {/* Payment Step — Bank transfer */}
+            {step === "payment" && (
               <div className="flex-1 flex flex-col overflow-hidden">
-                <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                  <div className="p-3 rounded-xl bg-gray-800/50 border border-gray-700/50 flex justify-between text-sm">
-                    <span className="text-gray-400">المبلغ المستحق</span>
-                    <span className="font-bold text-white">{formatCurrency(total)}</span>
-                  </div>
-
-                  <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-purple-500/10 border border-purple-500/20 text-purple-300 text-xs">
-                    <Lock size={13} className="shrink-0" />
-                    دفع آمن عبر Stripe — بياناتك مشفّرة ولا تُحفظ لدينا
-                  </div>
-
-                  <Elements
-                    stripe={stripePromise}
-                    options={{
-                      clientSecret,
-                      appearance: {
-                        theme: "night",
-                        variables: { colorPrimary: "#6366f1" },
-                      },
-                    }}
-                  >
-                    <StripePaymentForm
-                      total={total}
-                      onBack={() => setStep("checkout")}
-                      onPaid={() => {
-                        if (pendingForm) finalizeOrder(pendingForm);
-                      }}
-                    />
-                  </Elements>
+                <div className="flex-1 overflow-y-auto p-4">
+                  <BankTransferPanel
+                    bank={bank}
+                    total={total}
+                    processing={isSubmitting}
+                    error={payError}
+                    onConfirm={confirmBankOrder}
+                    onBack={() => setStep("checkout")}
+                  />
                 </div>
               </div>
             )}
@@ -498,10 +457,10 @@ export function CartDrawer({
                       <span className="text-gray-400 text-sm">الإجمالي ({itemCount} سلعة)</span>
                       <span className="text-xl font-bold text-white">{formatCurrency(total)}</span>
                     </div>
-                    {stripeEnabled && (
-                      <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-purple-500/10 border border-purple-500/20 text-purple-400 text-xs">
-                        <CreditCard size={13} />
-                        دفع آمن عبر Stripe
+                    {bankReady && (
+                      <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs">
+                        <Landmark size={13} />
+                        الدفع بالتحويل البنكي
                       </div>
                     )}
                     <motion.button
@@ -531,47 +490,76 @@ export function CartDrawer({
   );
 }
 
-function StripePaymentForm({
+function BankTransferPanel({
+  bank,
   total,
-  onPaid,
+  processing,
+  error,
+  onConfirm,
   onBack,
 }: {
+  bank?: BankDetails;
   total: number;
-  onPaid: () => void;
+  processing: boolean;
+  error: string;
+  onConfirm: () => void;
   onBack: () => void;
 }) {
-  const stripe = useStripe();
-  const elements = useElements();
-  const [processing, setProcessing] = useState(false);
-  const [error, setError] = useState("");
+  const [copied, setCopied] = useState("");
 
-  const handlePay = async () => {
-    if (!stripe || !elements) return;
-    setProcessing(true);
-    setError("");
-
-    const { error: confirmError, paymentIntent } = await stripe.confirmPayment({
-      elements,
-      redirect: "if_required",
+  const copy = (key: string, value?: string) => {
+    if (!value) return;
+    navigator.clipboard?.writeText(value).then(() => {
+      setCopied(key);
+      setTimeout(() => setCopied(""), 1500);
     });
-
-    if (confirmError) {
-      setError(confirmError.message || "فشلت عملية الدفع");
-      setProcessing(false);
-      return;
-    }
-
-    if (paymentIntent && paymentIntent.status === "succeeded") {
-      onPaid();
-    } else {
-      setError("لم تكتمل عملية الدفع، حاول مرة أخرى");
-      setProcessing(false);
-    }
   };
+
+  const rows: { key: string; label: string; value?: string; mono?: boolean }[] = [
+    { key: "bankName", label: "اسم البنك", value: bank?.bankName },
+    { key: "accountName", label: "اسم صاحب الحساب", value: bank?.accountName },
+    { key: "iban", label: "الآيبان (IBAN)", value: bank?.iban, mono: true },
+    { key: "accountNumber", label: "رقم الحساب", value: bank?.accountNumber, mono: true },
+  ].filter((r) => r.value);
 
   return (
     <div className="space-y-4">
-      <PaymentElement options={{ layout: "tabs" }} />
+      <div className="p-3 rounded-xl bg-gray-800/50 border border-gray-700/50 flex justify-between text-sm">
+        <span className="text-gray-400">المبلغ المطلوب تحويله</span>
+        <span className="font-bold text-white">{formatCurrency(total)}</span>
+      </div>
+
+      <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs leading-relaxed">
+        <Landmark size={14} className="shrink-0 mt-0.5" />
+        <span>
+          حوّل أو أودِع المبلغ في الحساب البنكي التالي، ثم اضغط «تأكيد الطلب». سيتم
+          تجهيز طلبك بعد استلام المبلغ.
+        </span>
+      </div>
+
+      <div className="rounded-xl border border-gray-700/50 divide-y divide-gray-800 overflow-hidden">
+        {rows.map((r) => (
+          <div key={r.key} className="flex items-center justify-between gap-3 p-3 bg-gray-900/40">
+            <div className="min-w-0">
+              <p className="text-[11px] text-gray-500 mb-0.5">{r.label}</p>
+              <p
+                className={`text-sm text-white truncate ${r.mono ? "font-mono" : ""}`}
+                dir={r.mono ? "ltr" : "rtl"}
+              >
+                {r.value}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => copy(r.key, r.value)}
+              className="shrink-0 w-8 h-8 flex items-center justify-center rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-emerald-400 transition-all"
+              title="نسخ"
+            >
+              {copied === r.key ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
+            </button>
+          </div>
+        ))}
+      </div>
 
       {error && (
         <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-xs">
@@ -580,14 +568,10 @@ function StripePaymentForm({
         </div>
       )}
 
-      <p className="text-[11px] text-gray-600 text-center">
-        للاختبار استخدم البطاقة 4242 4242 4242 4242 — أي تاريخ مستقبلي وأي CVC
-      </p>
-
       <motion.button
         type="button"
-        onClick={handlePay}
-        disabled={!stripe || processing}
+        onClick={onConfirm}
+        disabled={processing}
         whileHover={{ scale: processing ? 1 : 1.01 }}
         whileTap={{ scale: processing ? 1 : 0.99 }}
         className="w-full py-3.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 disabled:from-gray-700 disabled:to-gray-700 text-white font-semibold text-sm transition-all shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2"
@@ -595,12 +579,12 @@ function StripePaymentForm({
         {processing ? (
           <>
             <Loader2 size={16} className="animate-spin" />
-            جارٍ معالجة الدفع...
+            جارٍ تأكيد الطلب...
           </>
         ) : (
           <>
-            <Lock size={16} />
-            ادفع {formatCurrency(total)}
+            <CheckCircle size={16} />
+            أكّدت التحويل — تأكيد الطلب
           </>
         )}
       </motion.button>

@@ -29,11 +29,12 @@ export function serializeStore(s: PrismaStore, stats: StoreStats): Store {
     productsCount: stats.productsCount,
     ordersCount: stats.ordersCount,
     revenue: stats.revenue,
-    stripe: {
-      publishableKey: s.stripePublishableKey ?? "",
-      secretKey: s.stripeSecretKey ?? "",
-      enabled: s.stripeEnabled,
-      connectedAt: s.stripeConnectedAt?.toISOString(),
+    bank: {
+      bankName: s.bankName ?? "",
+      accountName: s.bankAccountName ?? "",
+      iban: s.bankIban ?? "",
+      accountNumber: s.bankAccountNumber ?? "",
+      enabled: s.bankEnabled,
     },
     createdAt: s.createdAt.toISOString(),
   };

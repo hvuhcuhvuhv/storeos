@@ -54,10 +54,11 @@ model Store {
   status      StoreStatus @default(active)
   category    String      @default("")
 
-  stripePublishableKey String?
-  stripeSecretKey      String?
-  stripeEnabled        Boolean @default(false)
-  stripeConnectedAt    DateTime?
+  bankName          String?
+  bankAccountName   String?
+  bankIban          String?
+  bankAccountNumber String?
+  bankEnabled       Boolean @default(false)
 
   products  Product[]
   orders    Order[]

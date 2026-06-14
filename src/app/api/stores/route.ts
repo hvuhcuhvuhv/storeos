@@ -86,9 +86,11 @@ export async function POST(request: NextRequest) {
         ownerEmail,
         ownerPhone: body.ownerPhone?.trim() || null,
         category: body.category?.trim() || "",
-        stripePublishableKey: body.stripePublishableKey || null,
-        stripeSecretKey: body.stripeSecretKey || null,
-        stripeEnabled: Boolean(body.stripePublishableKey && body.stripeSecretKey),
+        bankName: body.bankName?.trim() || null,
+        bankAccountName: body.bankAccountName?.trim() || null,
+        bankIban: body.bankIban?.replace(/\s+/g, "").toUpperCase() || null,
+        bankAccountNumber: body.bankAccountNumber?.trim() || null,
+        bankEnabled: Boolean(body.bankIban && body.bankAccountName),
       },
     });
   });
