@@ -213,13 +213,6 @@ export default function StorePage({ params }: { params: Promise<{ slug: string }
       <CartDrawer
         storeId={store.id}
         storeName={store.brandName || store.name}
-        bankEnabled={store.bank?.enabled}
-        bank={{
-          bankName: store.bank?.bankName,
-          accountName: store.bank?.accountName,
-          iban: store.bank?.iban,
-          accountNumber: store.bank?.accountNumber,
-        }}
         isOpen={cartOpen}
         onClose={() => setCartOpen(false)}
         onOrderSuccess={(orderId) => {
@@ -263,12 +256,10 @@ export default function StorePage({ params }: { params: Promise<{ slug: string }
               <div className="flex items-center gap-3 mb-2 flex-wrap">
                 <h1 className="text-3xl font-bold text-white">{store.brandName || store.name}</h1>
                 <Badge variant="active">متجر موثق</Badge>
-                {store.bank?.enabled && (
-                  <span className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs">
-                    <Shield size={12} />
-                    تحويل بنكي
-                  </span>
-                )}
+                <span className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs">
+                  <Shield size={12} />
+                  الدفع عند الاستلام
+                </span>
               </div>
               {store.brandName && store.brandName !== store.name && (
                 <p className="text-indigo-400 text-sm mb-1">{store.name}</p>

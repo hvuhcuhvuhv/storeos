@@ -11,12 +11,9 @@ export interface User {
 
 export type StoreStatus = "active" | "inactive";
 
-export interface BankConfig {
-  bankName: string;
-  accountName: string;
-  iban: string;
-  accountNumber: string;
-  enabled: boolean;
+export interface PaymentsConfig {
+  connected: boolean;
+  onboarded: boolean;
 }
 
 export interface Store {
@@ -35,7 +32,7 @@ export interface Store {
   productsCount: number;
   ordersCount: number;
   revenue: number;
-  bank?: BankConfig;
+  payments?: PaymentsConfig;
   createdAt: string;
 }
 
@@ -61,6 +58,7 @@ export interface Order {
   customerPhone: string;
   customerCity?: string;
   customerAddress?: string;
+  deliveryFee: number;
   total: number;
   status: "pending" | "processing" | "shipped" | "delivered" | "cancelled";
   items: OrderItem[];

@@ -137,6 +137,7 @@ export default function NewStorePage() {
               <p className="text-xs text-gray-500 mb-1">رابط المتجر</p>
               <p className="text-indigo-400 font-mono text-sm" dir="ltr">/store/{createdSlug}</p>
             </div>
+
             <div className="flex gap-3">
               <Link href="/admin/stores" className="flex-1">
                 <button className="w-full py-2.5 rounded-xl border border-gray-600 text-gray-300 hover:bg-gray-700/50 text-sm">

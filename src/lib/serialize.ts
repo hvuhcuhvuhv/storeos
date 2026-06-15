@@ -29,12 +29,9 @@ export function serializeStore(s: PrismaStore, stats: StoreStats): Store {
     productsCount: stats.productsCount,
     ordersCount: stats.ordersCount,
     revenue: stats.revenue,
-    bank: {
-      bankName: s.bankName ?? "",
-      accountName: s.bankAccountName ?? "",
-      iban: s.bankIban ?? "",
-      accountNumber: s.bankAccountNumber ?? "",
-      enabled: s.bankEnabled,
+    payments: {
+      connected: Boolean(s.stripeAccountId),
+      onboarded: s.stripeOnboarded,
     },
     createdAt: s.createdAt.toISOString(),
   };
@@ -67,6 +64,7 @@ export function serializeOrder(
     customerPhone: o.customerPhone,
     customerCity: o.customerCity ?? undefined,
     customerAddress: o.customerAddress ?? undefined,
+    deliveryFee: o.deliveryFee,
     total: o.total,
     status: o.status,
     items: o.items.map((i) => ({

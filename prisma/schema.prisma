@@ -54,11 +54,8 @@ model Store {
   status      StoreStatus @default(active)
   category    String      @default("")
 
-  bankName          String?
-  bankAccountName   String?
-  bankIban          String?
-  bankAccountNumber String?
-  bankEnabled       Boolean @default(false)
+  stripeAccountId String?
+  stripeOnboarded Boolean @default(false)
 
   products  Product[]
   orders    Order[]
@@ -90,6 +87,7 @@ model Order {
   customerPhone   String
   customerCity    String?
   customerAddress String?
+  deliveryFee     Float       @default(0)
   total           Float
   status          OrderStatus @default(pending)
   items           OrderItem[]

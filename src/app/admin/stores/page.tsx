@@ -15,6 +15,7 @@ import {
   ShoppingCart,
   TrendingUp,
   Eye,
+  Landmark,
 } from "lucide-react";
 import { useStoreStore } from "@/store/useStoreStore";
 import { useOrdersStore } from "@/store/useOrdersStore";
@@ -207,6 +208,21 @@ export default function StoresPage() {
                     >
                       <Trash2 size={14} />
                     </button>
+                  </div>
+
+                  {/* Payment method + revenue */}
+                  <div className="px-4 pb-2">
+                    <div className="px-3 py-2.5 rounded-lg border bg-amber-500/5 border-amber-500/20">
+                      <div className="flex items-center gap-2">
+                        <Landmark size={13} className="text-amber-400" />
+                        <span className="text-xs font-medium text-gray-300">
+                          الدفع عند الاستلام
+                        </span>
+                        <span className="mr-auto text-xs font-bold text-emerald-400">
+                          {formatCurrency(getStoreStats(stats, store.id).revenue)}
+                        </span>
+                      </div>
+                    </div>
                   </div>
 
                   {/* Store URL */}

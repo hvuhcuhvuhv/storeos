@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { serializeOrder } from "@/lib/serialize";
 import { getAuthUser, jsonError } from "@/lib/api-helpers";
+import { DELIVERY_FEE } from "@/lib/constants";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -60,9 +61,10 @@ export async function POST(request: NextRequest) {
   if (!customerName || !customerPhone)
     return jsonError("اسم العميل ورقم الهاتف مطلوبان");
 
-  const total =
-    Number(body.total) ||
-    items.reduce((sum, i) => sum + i.price * i.quantity, 0);
+  // نحسب المجموع على الخادم لمنع التلاعب: مجموع المنتجات + رسوم التوصيل
+  const subtotal = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
+  const deliveryFee = DELIVERY_FEE;
+  const total = subtotal + deliveryFee;
 
   const order = await prisma.order.create({
     data: {
@@ -72,6 +74,7 @@ export async function POST(request: NextRequest) {
       customerPhone,
       customerCity: String(body.customerCity ?? "").trim() || null,
       customerAddress: String(body.customerAddress ?? "").trim() || null,
+      deliveryFee,
       total,
       status: "pending",
       items: { create: items },

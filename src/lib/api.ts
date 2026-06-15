@@ -77,6 +77,23 @@ export const api = {
       body: JSON.stringify({ status }),
     }),
 
+  // ===== Stripe Connect (حساب استلام المتجر) =====
+  connectStatus: () =>
+    request<{ connected: boolean; onboarded: boolean; detailsSubmitted?: boolean }>(
+      "/api/stripe/connect"
+    ),
+  connectOnboard: () =>
+    request<{ url: string }>("/api/stripe/connect", {
+      method: "POST",
+      body: JSON.stringify({}),
+    }),
+  // للأدمن: توليد رابط ربط Stripe لمتجر محدّد
+  connectOnboardStore: (storeId: string) =>
+    request<{ url: string }>("/api/stripe/connect", {
+      method: "POST",
+      body: JSON.stringify({ storeId }),
+    }),
+
   // ===== Users =====
   getUsers: () => request<{ users: User[] }>("/api/users"),
 

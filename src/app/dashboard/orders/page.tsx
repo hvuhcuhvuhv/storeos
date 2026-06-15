@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { ShoppingCart, Search, Eye, FileSpreadsheet, User, Phone, Mail, MapPin, Home } from "lucide-react";
+import { ShoppingCart, Search, Eye, FileSpreadsheet, User, Phone, Mail, MapPin, Home, Printer } from "lucide-react";
 import { useState } from "react";
 import { Sidebar, TopBar } from "@/components/layout/Sidebar";
 import { Badge } from "@/components/ui/Cards";
@@ -12,6 +12,7 @@ import { useStoreStore } from "@/store/useStoreStore";
 import { useOrdersStore } from "@/store/useOrdersStore";
 import { exportStoreDataToExcel } from "@/lib/exportExcel";
 import { ExportDateControls } from "@/components/ui/ExportDateControls";
+import { printInvoice } from "@/lib/invoice";
 import { Order } from "@/types";
 
 const STATUS_OPTIONS: Order["status"][] = ["pending", "processing", "shipped", "delivered", "cancelled"];
@@ -176,12 +177,22 @@ export default function OrdersPage() {
                         <span className="text-xs text-gray-500">{formatDate(order.createdAt)}</span>
                       </td>
                       <td className="px-5 py-4">
-                        <button
-                          onClick={() => setViewOrder(order)}
-                          className="p-1.5 rounded-lg text-gray-600 hover:text-indigo-400 hover:bg-indigo-500/10 transition-all"
-                        >
-                          <Eye size={14} />
-                        </button>
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={() => setViewOrder(order)}
+                            title="عرض التفاصيل"
+                            className="p-1.5 rounded-lg text-gray-600 hover:text-indigo-400 hover:bg-indigo-500/10 transition-all"
+                          >
+                            <Eye size={14} />
+                          </button>
+                          <button
+                            onClick={() => printInvoice(order, store.brandName || store.name)}
+                            title="طباعة الفاتورة"
+                            className="p-1.5 rounded-lg text-gray-600 hover:text-emerald-400 hover:bg-emerald-500/10 transition-all"
+                          >
+                            <Printer size={14} />
+                          </button>
+                        </div>
                       </td>
                     </motion.tr>
                   ))}
@@ -257,11 +268,35 @@ export default function OrdersPage() {
                   </div>
                 ))}
               </div>
-              <div className="flex items-center justify-between mt-3 px-1">
-                <span className="text-sm text-gray-400">الإجمالي</span>
-                <span className="text-lg font-bold text-indigo-400">{formatCurrency(viewOrder.total)}</span>
+              <div className="mt-3 px-1 space-y-1.5">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-400">المجموع الفرعي</span>
+                  <span className="text-gray-300">
+                    {formatCurrency(Math.max(0, viewOrder.total - (viewOrder.deliveryFee ?? 0)))}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-400">رسوم التوصيل</span>
+                  <span className="text-gray-300">{formatCurrency(viewOrder.deliveryFee ?? 0)}</span>
+                </div>
+                <div className="flex items-center justify-between pt-1.5 border-t border-gray-700/50">
+                  <span className="text-sm text-gray-300 font-medium">الإجمالي</span>
+                  <span className="text-lg font-bold text-indigo-400">{formatCurrency(viewOrder.total)}</span>
+                </div>
               </div>
-              <p className="text-xs text-gray-600 mt-1 px-1">تاريخ الطلب: {formatDateTime(viewOrder.createdAt)}</p>
+              <div className="flex items-center gap-2 mt-3 px-3 py-2 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs">
+                الدفع نقداً عند الاستلام
+              </div>
+              <p className="text-xs text-gray-600 mt-2 px-1">تاريخ الطلب: {formatDateTime(viewOrder.createdAt)}</p>
+              {store && (
+                <button
+                  onClick={() => printInvoice(viewOrder, store.brandName || store.name)}
+                  className="w-full mt-3 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-sm transition-all flex items-center justify-center gap-2"
+                >
+                  <Printer size={15} />
+                  طباعة الفاتورة
+                </button>
+              )}
             </div>
 
             <div>

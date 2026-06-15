@@ -65,14 +65,6 @@ export async function PATCH(
   if (typeof body.category === "string") data.category = body.category.trim();
   if (typeof body.ownerPhone === "string") data.ownerPhone = body.ownerPhone.trim() || null;
   if (body.status === "active" || body.status === "inactive") data.status = body.status;
-  if (typeof body.bankName === "string") data.bankName = body.bankName.trim() || null;
-  if (typeof body.bankAccountName === "string")
-    data.bankAccountName = body.bankAccountName.trim() || null;
-  if (typeof body.bankIban === "string")
-    data.bankIban = body.bankIban.replace(/\s+/g, "").toUpperCase() || null;
-  if (typeof body.bankAccountNumber === "string")
-    data.bankAccountNumber = body.bankAccountNumber.trim() || null;
-  if (typeof body.bankEnabled === "boolean") data.bankEnabled = body.bankEnabled;
 
   const updated = await prisma.store.update({ where: { id }, data });
   const stats = await getStoreStatsById(id);

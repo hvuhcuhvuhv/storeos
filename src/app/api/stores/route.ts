@@ -86,11 +86,6 @@ export async function POST(request: NextRequest) {
         ownerEmail,
         ownerPhone: body.ownerPhone?.trim() || null,
         category: body.category?.trim() || "",
-        bankName: body.bankName?.trim() || null,
-        bankAccountName: body.bankAccountName?.trim() || null,
-        bankIban: body.bankIban?.replace(/\s+/g, "").toUpperCase() || null,
-        bankAccountNumber: body.bankAccountNumber?.trim() || null,
-        bankEnabled: Boolean(body.bankIban && body.bankAccountName),
       },
     });
   });

@@ -12,14 +12,13 @@ import {
   User,
   Mail,
   Phone,
-  Landmark,
   ArrowRight,
   Loader2,
   MapPin,
   Home,
-  Copy,
-  Check,
   AlertCircle,
+  Banknote,
+  Truck,
 } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -27,6 +26,7 @@ import { z } from "zod";
 import { useCartStore, EMPTY_CART, CartItem } from "@/store/useCartStore";
 import { useOrdersStore } from "@/store/useOrdersStore";
 import { formatCurrency } from "@/lib/utils";
+import { DELIVERY_FEE } from "@/lib/constants";
 
 const checkoutSchema = z.object({
   customerName: z.string().min(2, "الاسم يجب أن يكون حرفين على الأقل"),
@@ -38,20 +38,11 @@ const checkoutSchema = z.object({
 
 type CheckoutForm = z.infer<typeof checkoutSchema>;
 
-type Step = "cart" | "checkout" | "payment" | "success";
-
-export interface BankDetails {
-  bankName?: string;
-  accountName?: string;
-  iban?: string;
-  accountNumber?: string;
-}
+type Step = "cart" | "checkout" | "success";
 
 interface CartDrawerProps {
   storeId: string;
   storeName: string;
-  bankEnabled?: boolean;
-  bank?: BankDetails;
   isOpen: boolean;
   onClose: () => void;
   onOrderSuccess?: (orderId: string) => void;
@@ -60,8 +51,6 @@ interface CartDrawerProps {
 export function CartDrawer({
   storeId,
   storeName,
-  bankEnabled = false,
-  bank,
   isOpen,
   onClose,
   onOrderSuccess,
@@ -73,13 +62,12 @@ export function CartDrawer({
   const [step, setStep] = useState<Step>("cart");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [completedOrderId, setCompletedOrderId] = useState("");
-  const [pendingForm, setPendingForm] = useState<CheckoutForm | null>(null);
   const [payError, setPayError] = useState("");
 
-  const total = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
+  const subtotal = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
   const itemCount = items.reduce((sum, i) => sum + i.quantity, 0);
-
-  const bankReady = Boolean(bankEnabled && bank?.iban && bank?.accountName);
+  const deliveryFee = items.length > 0 ? DELIVERY_FEE : 0;
+  const total = subtotal + deliveryFee;
 
   const {
     register,
@@ -93,7 +81,6 @@ export function CartDrawer({
   const resetFlow = () => {
     setStep("cart");
     setCompletedOrderId("");
-    setPendingForm(null);
     setPayError("");
     reset();
   };
@@ -105,7 +92,11 @@ export function CartDrawer({
     }, 300);
   };
 
-  const finalizeOrder = async (data: CheckoutForm) => {
+  const onSubmit = async (data: CheckoutForm) => {
+    if (items.length === 0) return;
+    setPayError("");
+    setIsSubmitting(true);
+
     const result = await addOrder({
       storeId,
       customerName: data.customerName,
@@ -122,6 +113,8 @@ export function CartDrawer({
       })),
     });
 
+    setIsSubmitting(false);
+
     if (!result.success || !result.order) {
       setPayError(result.error || "تعذر تأكيد الطلب");
       return;
@@ -131,29 +124,6 @@ export function CartDrawer({
     setCompletedOrderId(result.order.id);
     setStep("success");
     onOrderSuccess?.(result.order.id);
-  };
-
-  const onSubmit = async (data: CheckoutForm) => {
-    if (items.length === 0) return;
-    setPayError("");
-
-    if (!bankReady) {
-      setIsSubmitting(true);
-      await finalizeOrder(data);
-      setIsSubmitting(false);
-      return;
-    }
-
-    setPendingForm(data);
-    setStep("payment");
-  };
-
-  const confirmBankOrder = async () => {
-    if (!pendingForm) return;
-    setPayError("");
-    setIsSubmitting(true);
-    await finalizeOrder(pendingForm);
-    setIsSubmitting(false);
   };
 
   return (
@@ -189,7 +159,6 @@ export function CartDrawer({
                   <h2 className="font-bold text-white">
                     {step === "cart" && "سلة التسوق"}
                     {step === "checkout" && "إتمام الطلب"}
-                    {step === "payment" && "الدفع الآمن"}
                     {step === "success" && "تم الطلب بنجاح!"}
                   </h2>
                   <p className="text-xs text-gray-500">{storeName}</p>
@@ -215,9 +184,13 @@ export function CartDrawer({
                   <CheckCircle size={40} className="text-emerald-400" />
                 </motion.div>
                 <h3 className="text-xl font-bold text-white mb-2">شكراً لطلبك!</h3>
-                <p className="text-gray-400 text-sm mb-6">
-                  تم استلام طلبك وسيتم معالجته قريباً
+                <p className="text-gray-400 text-sm mb-4">
+                  تم استلام طلبك وسيتم التواصل معك لتأكيد التوصيل
                 </p>
+                <div className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs mb-6">
+                  <Banknote size={14} className="shrink-0" />
+                  الدفع نقداً عند الاستلام
+                </div>
                 <div className="w-full bg-gray-800/50 rounded-xl p-4 mb-6 border border-gray-700/50">
                   <p className="text-xs text-gray-500 mb-1">رقم الطلب</p>
                   <p className="text-indigo-400 font-mono font-semibold">{completedOrderId}</p>
@@ -235,17 +208,25 @@ export function CartDrawer({
             {step === "checkout" && (
               <form onSubmit={handleSubmit(onSubmit)} className="flex-1 flex flex-col overflow-hidden">
                 <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                  <div className="p-3 rounded-xl bg-gray-800/50 border border-gray-700/50">
-                    <div className="flex justify-between text-sm mb-1">
+                  <div className="p-3 rounded-xl bg-gray-800/50 border border-gray-700/50 space-y-1.5">
+                    <div className="flex justify-between text-sm">
                       <span className="text-gray-400">{itemCount} سلعة</span>
+                      <span className="text-gray-300">{formatCurrency(subtotal)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-400 flex items-center gap-1">
+                        <Truck size={13} /> رسوم التوصيل
+                      </span>
+                      <span className="text-gray-300">{formatCurrency(deliveryFee)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm pt-1.5 border-t border-gray-700/50">
+                      <span className="text-gray-300 font-medium">الإجمالي</span>
                       <span className="font-bold text-white">{formatCurrency(total)}</span>
                     </div>
-                    {bankReady && (
-                      <div className="flex items-center gap-1.5 mt-2 text-xs text-emerald-400">
-                        <Landmark size={12} />
-                        الدفع بالتحويل البنكي
-                      </div>
-                    )}
+                    <div className="flex items-center gap-1.5 mt-2 text-xs text-amber-400">
+                      <Banknote size={13} />
+                      الدفع نقداً عند الاستلام
+                    </div>
                   </div>
 
                   <p className="text-sm font-medium text-gray-300">بيانات التوصيل</p>
@@ -349,11 +330,6 @@ export function CartDrawer({
                         <Loader2 size={16} className="animate-spin" />
                         جارٍ تأكيد الطلب...
                       </>
-                    ) : bankReady ? (
-                      <>
-                        <Landmark size={16} />
-                        المتابعة للدفع — {formatCurrency(total)}
-                      </>
                     ) : (
                       <>
                         <CheckCircle size={16} />
@@ -371,22 +347,6 @@ export function CartDrawer({
                   </button>
                 </div>
               </form>
-            )}
-
-            {/* Payment Step — Bank transfer */}
-            {step === "payment" && (
-              <div className="flex-1 flex flex-col overflow-hidden">
-                <div className="flex-1 overflow-y-auto p-4">
-                  <BankTransferPanel
-                    bank={bank}
-                    total={total}
-                    processing={isSubmitting}
-                    error={payError}
-                    onConfirm={confirmBankOrder}
-                    onBack={() => setStep("checkout")}
-                  />
-                </div>
-              </div>
             )}
 
             {/* Cart Step */}
@@ -453,16 +413,26 @@ export function CartDrawer({
 
                 {items.length > 0 && (
                   <div className="p-5 border-t border-gray-800 space-y-3 shrink-0">
-                    <div className="flex items-center justify-between">
-                      <span className="text-gray-400 text-sm">الإجمالي ({itemCount} سلعة)</span>
-                      <span className="text-xl font-bold text-white">{formatCurrency(total)}</span>
-                    </div>
-                    {bankReady && (
-                      <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs">
-                        <Landmark size={13} />
-                        الدفع بالتحويل البنكي
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-gray-400">المجموع ({itemCount} سلعة)</span>
+                        <span className="text-gray-300">{formatCurrency(subtotal)}</span>
                       </div>
-                    )}
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-gray-400 flex items-center gap-1">
+                          <Truck size={13} /> رسوم التوصيل
+                        </span>
+                        <span className="text-gray-300">{formatCurrency(deliveryFee)}</span>
+                      </div>
+                      <div className="flex items-center justify-between pt-1.5 border-t border-gray-700/50">
+                        <span className="text-gray-300 font-medium">الإجمالي</span>
+                        <span className="text-xl font-bold text-white">{formatCurrency(total)}</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs">
+                      <Banknote size={13} />
+                      الدفع نقداً عند الاستلام
+                    </div>
                     <motion.button
                       type="button"
                       onClick={() => setStep("checkout")}
@@ -487,118 +457,6 @@ export function CartDrawer({
         </>
       )}
     </AnimatePresence>
-  );
-}
-
-function BankTransferPanel({
-  bank,
-  total,
-  processing,
-  error,
-  onConfirm,
-  onBack,
-}: {
-  bank?: BankDetails;
-  total: number;
-  processing: boolean;
-  error: string;
-  onConfirm: () => void;
-  onBack: () => void;
-}) {
-  const [copied, setCopied] = useState("");
-
-  const copy = (key: string, value?: string) => {
-    if (!value) return;
-    navigator.clipboard?.writeText(value).then(() => {
-      setCopied(key);
-      setTimeout(() => setCopied(""), 1500);
-    });
-  };
-
-  const rows: { key: string; label: string; value?: string; mono?: boolean }[] = [
-    { key: "bankName", label: "اسم البنك", value: bank?.bankName },
-    { key: "accountName", label: "اسم صاحب الحساب", value: bank?.accountName },
-    { key: "iban", label: "الآيبان (IBAN)", value: bank?.iban, mono: true },
-    { key: "accountNumber", label: "رقم الحساب", value: bank?.accountNumber, mono: true },
-  ].filter((r) => r.value);
-
-  return (
-    <div className="space-y-4">
-      <div className="p-3 rounded-xl bg-gray-800/50 border border-gray-700/50 flex justify-between text-sm">
-        <span className="text-gray-400">المبلغ المطلوب تحويله</span>
-        <span className="font-bold text-white">{formatCurrency(total)}</span>
-      </div>
-
-      <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs leading-relaxed">
-        <Landmark size={14} className="shrink-0 mt-0.5" />
-        <span>
-          حوّل أو أودِع المبلغ في الحساب البنكي التالي، ثم اضغط «تأكيد الطلب». سيتم
-          تجهيز طلبك بعد استلام المبلغ.
-        </span>
-      </div>
-
-      <div className="rounded-xl border border-gray-700/50 divide-y divide-gray-800 overflow-hidden">
-        {rows.map((r) => (
-          <div key={r.key} className="flex items-center justify-between gap-3 p-3 bg-gray-900/40">
-            <div className="min-w-0">
-              <p className="text-[11px] text-gray-500 mb-0.5">{r.label}</p>
-              <p
-                className={`text-sm text-white truncate ${r.mono ? "font-mono" : ""}`}
-                dir={r.mono ? "ltr" : "rtl"}
-              >
-                {r.value}
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => copy(r.key, r.value)}
-              className="shrink-0 w-8 h-8 flex items-center justify-center rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-emerald-400 transition-all"
-              title="نسخ"
-            >
-              {copied === r.key ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
-            </button>
-          </div>
-        ))}
-      </div>
-
-      {error && (
-        <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-xs">
-          <AlertCircle size={13} className="shrink-0" />
-          {error}
-        </div>
-      )}
-
-      <motion.button
-        type="button"
-        onClick={onConfirm}
-        disabled={processing}
-        whileHover={{ scale: processing ? 1 : 1.01 }}
-        whileTap={{ scale: processing ? 1 : 0.99 }}
-        className="w-full py-3.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 disabled:from-gray-700 disabled:to-gray-700 text-white font-semibold text-sm transition-all shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2"
-      >
-        {processing ? (
-          <>
-            <Loader2 size={16} className="animate-spin" />
-            جارٍ تأكيد الطلب...
-          </>
-        ) : (
-          <>
-            <CheckCircle size={16} />
-            أكّدت التحويل — تأكيد الطلب
-          </>
-        )}
-      </motion.button>
-
-      <button
-        type="button"
-        onClick={onBack}
-        disabled={processing}
-        className="w-full py-2 text-gray-500 hover:text-gray-300 text-xs transition-colors flex items-center justify-center gap-1 disabled:opacity-50"
-      >
-        <ArrowRight size={12} />
-        تعديل البيانات
-      </button>
-    </div>
   );
 }
 

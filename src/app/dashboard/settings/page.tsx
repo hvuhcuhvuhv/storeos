@@ -5,7 +5,6 @@ import { motion } from "framer-motion";
 import {
   ImageIcon,
   Type,
-  Landmark,
   Save,
   CheckCircle,
   Upload,
@@ -16,7 +15,6 @@ import {
 import { useAuthStore } from "@/store/useAuthStore";
 import { useStoreStore } from "@/store/useStoreStore";
 import { Sidebar, TopBar } from "@/components/layout/Sidebar";
-import { BankConfig } from "@/types";
 
 export default function SettingsPage() {
   const { user } = useAuthStore();
@@ -28,13 +26,6 @@ export default function SettingsPage() {
   const [brandName, setBrandName] = useState("");
   const [logo, setLogo] = useState("");
   const [ownerPhone, setOwnerPhone] = useState("");
-  const [bank, setBank] = useState<BankConfig>({
-    bankName: "",
-    accountName: "",
-    iban: "",
-    accountNumber: "",
-    enabled: false,
-  });
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -43,15 +34,6 @@ export default function SettingsPage() {
     setBrandName(store.brandName || store.name);
     setLogo(store.logo || "");
     setOwnerPhone(store.ownerPhone || "");
-    setBank(
-      store.bank || {
-        bankName: "",
-        accountName: "",
-        iban: "",
-        accountNumber: "",
-        enabled: false,
-      }
-    );
   }, [store]);
 
   if (!store) {
@@ -84,11 +66,6 @@ export default function SettingsPage() {
       brandName: brandName.trim() || store.name,
       logo: logo || undefined,
       ownerPhone: ownerPhone.trim(),
-      bankName: bank.bankName.trim(),
-      bankAccountName: bank.accountName.trim(),
-      bankIban: bank.iban.trim(),
-      bankAccountNumber: bank.accountNumber.trim(),
-      bankEnabled: bank.enabled,
     });
 
     setSaving(false);
@@ -102,7 +79,7 @@ export default function SettingsPage() {
     <div className="flex min-h-screen bg-gray-950 flex-row-reverse">
       <Sidebar isAdmin={false} />
       <main className="flex-1 overflow-x-hidden">
-        <TopBar title="الإعدادات" subtitle="تخصيص متجرك وبوابة الدفع" />
+        <TopBar title="الإعدادات" subtitle="تخصيص متجرك وحساب استلام الأرباح" />
 
         <div className="p-6 max-w-3xl space-y-6 mt-16 lg:mt-0">
           {/* Brand Preview */}
@@ -228,101 +205,6 @@ export default function SettingsPage() {
                   placeholder="+971501234567"
                   dir="ltr"
                   className="w-full bg-gray-900/80 border border-gray-700/60 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 text-sm"
-                />
-              </div>
-            </div>
-          </motion.div>
-
-          {/* Bank transfer */}
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="glass rounded-2xl border border-gray-700/50 overflow-hidden"
-          >
-            <div className="p-5 border-b border-gray-700/50 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center">
-                  <Landmark size={18} className="text-emerald-400" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-white">الدفع بالتحويل البنكي</h3>
-                  <p className="text-xs text-gray-500">يودِع العميل المبلغ في حسابك ثم يؤكّد الطلب</p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setBank((b) => ({ ...b, enabled: !b.enabled }))}
-                className={`relative w-12 h-6 rounded-full transition-colors ${
-                  bank.enabled ? "bg-emerald-500" : "bg-gray-700"
-                }`}
-              >
-                <div
-                  className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${
-                    bank.enabled ? "right-0.5" : "right-6"
-                  }`}
-                />
-              </button>
-            </div>
-
-            <div className="p-5 space-y-4">
-              <div className={`flex items-center gap-3 p-3 rounded-xl border ${
-                bank.enabled && bank.iban
-                  ? "bg-emerald-500/5 border-emerald-500/20"
-                  : "bg-gray-800/30 border-gray-700/30"
-              }`}>
-                <div className={`w-2 h-2 rounded-full ${
-                  bank.enabled && bank.iban ? "bg-emerald-400" : "bg-gray-600"
-                }`} />
-                <span className="text-sm text-gray-300">
-                  {bank.enabled && bank.iban
-                    ? "بيانات الحساب جاهزة — ستظهر للعميل عند الدفع"
-                    : bank.enabled
-                    ? "أدخل الآيبان واسم صاحب الحساب لتفعيل الدفع"
-                    : "الدفع البنكي معطّل"}
-                </span>
-              </div>
-
-              <div>
-                <label className="block text-sm text-gray-400 mb-2">اسم البنك</label>
-                <input
-                  value={bank.bankName}
-                  onChange={(e) => setBank((b) => ({ ...b, bankName: e.target.value }))}
-                  placeholder="مثال: بنك الإمارات دبي الوطني"
-                  className="w-full bg-gray-900/80 border border-gray-700/60 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 text-sm"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm text-gray-400 mb-2">اسم صاحب الحساب</label>
-                <input
-                  value={bank.accountName}
-                  onChange={(e) => setBank((b) => ({ ...b, accountName: e.target.value }))}
-                  placeholder="الاسم كما هو مسجّل في البنك"
-                  className="w-full bg-gray-900/80 border border-gray-700/60 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 text-sm"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm text-gray-400 mb-2">رقم الآيبان (IBAN)</label>
-                <input
-                  value={bank.iban}
-                  onChange={(e) => setBank((b) => ({ ...b, iban: e.target.value.toUpperCase() }))}
-                  placeholder="AE000000000000000000000"
-                  dir="ltr"
-                  className="w-full bg-gray-900/80 border border-gray-700/60 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 text-sm font-mono"
-                />
-                <p className="text-xs text-gray-600 mt-1.5">يبدأ عادةً بـ AE ويتكوّن من 23 خانة</p>
-              </div>
-
-              <div>
-                <label className="block text-sm text-gray-400 mb-2">رقم الحساب (اختياري)</label>
-                <input
-                  value={bank.accountNumber}
-                  onChange={(e) => setBank((b) => ({ ...b, accountNumber: e.target.value }))}
-                  placeholder="رقم الحساب البنكي"
-                  dir="ltr"
-                  className="w-full bg-gray-900/80 border border-gray-700/60 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 text-sm font-mono"
                 />
               </div>
             </div>
