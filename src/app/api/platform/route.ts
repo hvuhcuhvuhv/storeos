@@ -6,7 +6,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const DEFAULTS = {
-  platformName: "منصة سند",
+  platformName: "زاهب",
   supportEmail: "support@sanad.com",
   allowNewStores: true,
   notifications: true,

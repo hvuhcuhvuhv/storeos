@@ -2,9 +2,9 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "منصة سند — متجرك الإلكتروني",
-    short_name: "سند",
-    description: "منصة سند لإدارة المتاجر الإلكترونية — تسوّق وأدر متجرك من هاتفك",
+    name: "زاهب — متجرك الإلكتروني",
+    short_name: "زاهب",
+    description: "زاهب لإدارة المتاجر الإلكترونية — تسوّق وأدر متجرك من هاتفك",
     start_url: "/",
     scope: "/",
     display: "standalone",

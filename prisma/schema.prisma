@@ -110,7 +110,7 @@ model OrderItem {
 
 model PlatformSettings {
   id             Int     @id @default(1)
-  platformName   String  @default("منصة سند")
+  platformName   String  @default("زاهب")
   supportEmail   String  @default("support@sanad.com")
   allowNewStores Boolean @default(true)
   notifications  Boolean @default(true)

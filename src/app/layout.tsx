@@ -11,13 +11,13 @@ const geist = Geist({
 });
 
 export const metadata: Metadata = {
-  title: "منصة سند - إدارة المتاجر الإلكترونية",
-  description: "منصة سند المتكاملة لإدارة المتاجر الإلكترونية",
+  title: "زاهب - إدارة المتاجر الإلكترونية",
+  description: "زاهب — المنصة المتكاملة لإدارة المتاجر الإلكترونية",
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "سند",
+    title: "زاهب",
   },
   formatDetection: { telephone: false },
 };

@@ -33,7 +33,7 @@ export function Modal({ isOpen, onClose, title, children, size = "md" }: ModalPr
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4">
           <motion.div
             ref={overlayRef}
             initial={{ opacity: 0 }}
@@ -43,16 +43,18 @@ export function Modal({ isOpen, onClose, title, children, size = "md" }: ModalPr
             className="absolute inset-0 bg-black/60 backdrop-blur-sm"
           />
           <motion.div
-            initial={{ opacity: 0, scale: 0.9, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.9, y: 20 }}
-            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+            initial={{ opacity: 0, y: "100%" }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: "100%" }}
+            transition={{ type: "spring", damping: 28, stiffness: 300 }}
             className={cn(
-              "relative w-full glass rounded-2xl shadow-2xl border border-gray-700/50 overflow-hidden",
+              "relative w-full glass shadow-2xl border border-gray-700/50 flex flex-col",
+              "rounded-t-3xl sm:rounded-2xl",
+              "max-h-[92dvh] sm:max-h-[90vh]",
               sizeMap[size]
             )}
           >
-            <div className="flex items-center justify-between p-6 border-b border-gray-700/50">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-700/50 shrink-0">
               <h3 className="text-lg font-semibold text-white">{title}</h3>
               <button
                 onClick={onClose}
@@ -61,7 +63,7 @@ export function Modal({ isOpen, onClose, title, children, size = "md" }: ModalPr
                 <X size={18} />
               </button>
             </div>
-            <div className="p-6">{children}</div>
+            <div className="p-6 overflow-y-auto flex-1">{children}</div>
           </motion.div>
         </div>
       )}

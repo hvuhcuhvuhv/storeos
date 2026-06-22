@@ -1,5 +1,5 @@
 export const DEFAULT_PLATFORM_SETTINGS = {
-  platformName: "منصة سند",
+  platformName: "زاهب",
   supportEmail: "support@sanad.com",
   allowNewStores: true,
   notifications: true,
